@@ -1,60 +1,40 @@
 import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
 import Notiflix from 'notiflix';
-import NewsApiService from './js/PixabayApi.js';
+import PixabayApi from './js/PixabayApi.js';
 import LoadMoreBtn from './js/components/LoadMoreBtn.js';
 
 const refs = {
   form: document.getElementById('search-form'),
-  newsWrapper: document.getElementById('gallery'),
+  gallery: document.getElementById('gallery'),
 };
 
-const newsApiService = new NewsApiService();
+const Api = new PixabayApi();
 const loadMoreBtn = new LoadMoreBtn({
   selector: '#loadMore',
   isHidden: true,
 });
 
 refs.form.addEventListener('submit', onSubmit);
-loadMoreBtn.button.addEventListener('click', fetchArticles);
-// function handleScroll() {
-//   const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
-
-//   console.log(scrollTop, scrollHeight, clientHeight);
-//   if (scrollTop + clientHeight >= scrollHeight - 5) {
-//     fetchArticles();
-//   }
-// }
-
-// window.addEventListener("scroll", handleScroll);
+loadMoreBtn.button.addEventListener('click', fetchGallery);
 
 function onSubmit(e) {
   e.preventDefault();
-  loadMoreBtn.show();
+
   const form = e.currentTarget;
-  // newsApiService.query = form.elements.news.value;
-  newsApiService.query = form.elements.searchQuery.value;
+  Api.query = form.elements.searchQuery.value;
 
-  newsApiService.resetPage();
-  clearNewsList();
-  fetchArticles().finally(() => form.reset());
-}
+  if (Api.query === '') {
+    Notiflix.Notify.failure(
+      'The search string cannot be empty. Please specify your search query.'
+    );
+    return;
+  }
 
-function fetchArticles() {
-  loadMoreBtn.disable();
-  return getArticlesMarkup()
-    .then(markup => {
-      updateNewsList(markup);
-      loadMoreBtn.enable();
-    })
-    .catch(onError);
-}
-
-function getArticlesMarkup() {
-  return newsApiService.getNews().then(({ hits }) => {
-    if (hits.length === 0) throw new Error('No data!');
-    return hits.reduce((markup, article) => markup + createMarkup(article), '');
-  });
+  loadMoreBtn.show();
+  Api.resetPage();
+  clearGallery();
+  fetchGallery().finally(() => form.reset());
 }
 
 function createMarkup({
@@ -94,41 +74,48 @@ function createMarkup({
   `;
 }
 
-// function createMarkup({ title, author, url, urlToImage, description }) {
-//   return `
-//     <div class="article-card">
-//         <h2 class="article-title">${title}</h2>
-//         <h3 class="article-author">${author || 'Unknown'}</h3>
-//         <img src=${
-//           urlToImage ||
-//           'https://sun9-43.userapi.com/impf/c637716/v637716451/5754/CZa3BJtbJtg.jpg?size=520x0&quality=95&sign=02df8d0cd8ae78099bc1f50938efd60a'
-//         } class="article-img">
-//         <p class="article-description">${description}</p>
-//         <a href=${url} target="_blank" class="article-link">Read more</a>
-//     </div>
-//   `;
-// }
-
-function updateNewsList(markup) {
-  refs.newsWrapper.insertAdjacentHTML('beforeend', markup);
+function updateGallery(markup) {
+  refs.gallery.insertAdjacentHTML('beforeend', markup);
 }
 
-function clearNewsList() {
-  refs.newsWrapper.innerHTML = '';
+function clearGallery() {
+  refs.gallery.innerHTML = '';
+}
+
+function getMarkup() {
+  return Api.getImg().then(({ hits }) => {
+    if (hits.totalHits === 0)
+      Notiflix.Notify.failure(
+        'Sorry, there are no images matching your search query. Please try again.'
+      );
+    return hits.reduce((markup, card) => markup + createMarkup(card), '');
+  });
+}
+
+function fetchGallery() {
+  loadMoreBtn.disable();
+  return getMarkup()
+    .then(markup => {
+      updateGallery(markup);
+      loadMoreBtn.enable();
+    })
+    .catch(onError);
 }
 
 function onError(err) {
   console.error(err);
   loadMoreBtn.hide();
-  clearNewsList();
-  updateNewsList('<p>Not found!</p>');
+  clearGallery();
+  updateGallery('<p>Not found!</p>');
 }
 
-/*
-  1. Користувач робить запит
-  2. Показується 5 перших результатів
-  3. Знизу зʼявляється кнопка "Завантажити більше"
-  4. Натискає на кнопку
-  5. Відбувається новий запит на сервер і підвантажується 5 нових обʼєктів
-  6. 5 нових результатів додаються до решти
-*/
+// !================
+// // func for endless scroll
+// function handleScroll() {
+//   const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+//   if (scrollTop + clientHeight >= scrollHeight - 5) {
+//     fetchGallery();
+//   }
+// }
+
+// window.addEventListener('scroll', handleScroll);
