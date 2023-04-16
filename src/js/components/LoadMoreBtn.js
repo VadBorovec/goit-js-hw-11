@@ -1,10 +1,3 @@
-/*
-Стани кнопки:
-1. Стан коли її немає на екрані
-2. Стан неактивна (Loading...) - коли відбувається запит(відповідь ще не отримана)
-3. Стан активна - коли можна зробити наступний запит
-*/
-
 export default class LoadMoreBtn {
   constructor({ selector, isHidden = false }) {
     this.button = this.getButton(selector);

@@ -43,6 +43,7 @@ function onSubmit(e) {
 
 function fetchGallery() {
   loadMoreBtn.disable();
+
   return getMarkup()
     .then(markup => {
       updateGallery(markup);
@@ -53,23 +54,33 @@ function fetchGallery() {
 }
 
 function getMarkup() {
-  const searchResult = Api.getImg();
-  return searchResult
-    .then(({ hits, totalHits, per_page, page }) => {
+  return Api.getImg()
+    .then(({ hits, totalHits }) => {
       if (totalHits === 0) {
         Notiflix.Notify.failure(
           'Sorry, there are no images matching your search query. Please try again.'
         );
+
         onError('Not found!');
       } else {
         Notiflix.Notify.success(`Hooray! We found ${totalHits} images.`);
+
+        const galleryItems = refs.gallery.querySelectorAll('.photo-card');
+        const itemsLeft = totalHits - galleryItems.length;
+
+        console.log('totalHits', totalHits);
+        console.log('itemsLeft', itemsLeft);
+        console.log('perPage', Api.perPage);
+        console.log('page', Api.page);
+
+        if (itemsLeft <= Api.perPage) {
+          loadMoreBtn.hide();
+          Notiflix.Notify.info(
+            "We're sorry, but you've reached the end of search results."
+          );
+        }
+
         return markupGallery(hits);
-      }
-      if (Math.ceil(totalHits / per_page) < page) {
-        loadMoreBtn.hide();
-        Notiflix.Notify.info(
-          "'We're sorry, but you've reached the end of search results."
-        );
       }
     })
     .catch(onError);
